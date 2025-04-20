@@ -298,7 +298,6 @@ class GoogleWorkspaceServer {
   }
 
   private async handleListEmails(args: any) {
-    console.log("[handleListEmails] Called with:", args);
     try {
       const maxResults = args?.maxResults || 10;
       const query = args?.query || "";
@@ -326,8 +325,6 @@ class GoogleWorkspaceServer {
         q: query,
       });
 
-      console.log("[handleListEmails] Gmail list response:", response.data);
-
       const messages = response.data.messages || [];
       const emailDetails = await Promise.all(
         messages.map(async (msg) => {
@@ -352,8 +349,6 @@ class GoogleWorkspaceServer {
           };
         })
       );
-
-      console.log("[handleListEmails] Final result:", emailDetails);
 
       return {
         content: [

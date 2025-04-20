@@ -18,8 +18,6 @@ const SERVER_SCRIPT_PATH = "../google-workspace-mcp-server/build/index.js";
 
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 const mcpClient = new Client({ name: "mcp-api-server", version: "1.0.0" });
-console.log("Initializing MCP client...");
-console.log("mcpClient:", mcpClient);
 
 let tools: any = [];
 
@@ -42,23 +40,18 @@ async function initMCP() {
 }
 
 fastify.post("/chat", async (req: any, reply) => {
-  console.log("REQUEST:", req.body);
   const { message } = req.body;
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: "user", content: message },
   ];
-  console.log("TOOLS:", tools);
-  console.log("MESSAGE:", message);
-  console.log("MESSAGEs:", messages);
+  
   const response = await openai.chat.completions.create({
     model: "gpt-4.1",
     messages,
     tools,
     tool_choice: "auto",
   });
-
-  console.log("RESPONSE:", response);
 
   const results: string[] = [];
 

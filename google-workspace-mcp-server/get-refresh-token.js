@@ -18,14 +18,9 @@ async function getRefreshToken() {
 
     // Obter credenciais incluindo o refresh token
     const credentials = auth.credentials;
-    
-    console.log('\nRefresh Token:', credentials.refresh_token);
-    console.log('\nClient ID:', credentials.client_id);
-    console.log('\nClient Secret:', credentials.client_secret);
 
     // Salvar credenciais em um arquivo
     writeFileSync('token.json', JSON.stringify(credentials, null, 2));
-    console.log('\nCredenciais salvas em token.json');
     
   } catch (error) {
     console.error('Erro ao obter refresh token:', error);
