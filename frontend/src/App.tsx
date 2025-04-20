@@ -1,114 +1,86 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import './App.css';
 import axios from 'axios';
+
+type ChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+};
 
 export function App() {
   const [message, setMessage] = useState('');
-  const [response, setResponse] = useState('');
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
+
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: message.trim(),
+    };
+
+    setChatHistory(prev => [...prev, userMessage]);
+    setMessage('');
     setLoading(true);
-    setResponse('');
 
     try {
       const res = await axios.post('http://localhost:3001/chat', { message });
-      setResponse(res.data.response);
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: res.data.response,
+      };
+      setChatHistory(prev => [...prev, assistantMessage]);
     } catch (err) {
       console.error(err);
-      setResponse('❌ Erro ao enviar mensagem.');
+      setChatHistory(prev => [...prev, { role: 'assistant', content: '❌ Erro ao enviar mensagem.' }]);
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div style={{
-      height: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: '#f2f2f2',
-      fontFamily: 'Arial, sans-serif',
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: 700,
-        padding: 32,
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)',
-      }}>
-        <h1 style={{
-          fontSize: 28,
-          marginBottom: 24,
-          textAlign: 'center',
-          color: '#333'
-        }}>💬 Chat com Claude + MCP</h1>
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
 
-        <form onSubmit={handleSubmit}>
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatHistory, loading]);
+
+  return (
+    <div className="container">
+      <div className="card">
+        <h1>💬 Chat com OpenIA + MCP</h1>
+      {chatHistory && chatHistory.length > 0 ? (
+        <div className="chat-box">
+          {chatHistory.map((msg, index) => (
+            <div
+              key={index}
+              className={`message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}`}
+            >
+              {msg.content}
+            </div>
+          ))}
+          {loading && <div className="message assistant-message">Digitando...</div>}
+          <div ref={chatEndRef} />
+        </div>
+      ): null}
+        <form onSubmit={handleSubmit} className="input-form">
           <textarea
             placeholder="Digite sua mensagem..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            rows={6}
-            style={{
-              width: '100%',
-              padding: 16,
-              fontSize: 18,
-              borderRadius: 12,
-              border: '1px solid #ccc',
-              resize: 'vertical',
-              marginBottom: 20,
-              backgroundColor: '#fafafa',
+            rows={3}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit(e);
+              }
             }}
           />
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '14px 0',
-              fontSize: 18,
-              borderRadius: 12,
-              border: 'none',
-              backgroundColor: loading ? '#bbb' : '#4a90e2',
-              color: '#fff',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'background-color 0.3s ease',
-            }}
-            onMouseOver={(e) => {
-              if (!loading) (e.currentTarget.style.backgroundColor = '#3b7dc4');
-            }}
-            onMouseOut={(e) => {
-              if (!loading) (e.currentTarget.style.backgroundColor = '#4a90e2');
-            }}
-          >
+          <button type="submit" disabled={loading}>
             {loading ? 'Enviando...' : 'Enviar'}
           </button>
         </form>
-
-        {response && (
-          <div style={{
-            marginTop: 32,
-            padding: 20,
-            backgroundColor: '#f9f9f9',
-            borderRadius: 12,
-            border: '1px solid #e0e0e0',
-            color: '#444',
-            fontSize: 17,
-            lineHeight: 1.5,
-            whiteSpace: 'pre-wrap'
-          }}>
-            <h3 style={{
-              marginBottom: 12,
-              fontSize: 20,
-              color: '#222'
-            }}>Resposta:</h3>
-            {response}
-          </div>
-        )}
       </div>
     </div>
   );
