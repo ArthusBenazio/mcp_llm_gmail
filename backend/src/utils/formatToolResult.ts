@@ -1,7 +1,11 @@
 export function formatToolResult(toolName: string, content: any): string {
-  
+
   if (toolName === "send_email") {
     return `✅ Email enviado com sucesso!`;
+  }
+
+  if (toolName === "modify_email") {
+    return "✅ Email modificado com sucesso!";
   }
 
   if (Array.isArray(content) && content[0]?.type === "text") {
