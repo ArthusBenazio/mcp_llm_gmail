@@ -46,36 +46,58 @@ fastify.post("/chat", async (req: any, reply) => {
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: "user", content: message },
   ];
-  
+
   const response = await openai.chat.completions.create({
     model: "gpt-4.1",
     messages,
     tools,
-    tool_choice: "auto", 
+    tool_choice: "auto",
   });
 
-  const results: string[] = [];
+  const firstMessage = response.choices[0].message;
 
-  const toolCalls = response.choices[0].message.tool_calls;
+  const toolCalls = firstMessage.tool_calls;
 
   if (toolCalls) {
+    const toolMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
+    const formattedResults: string[] = [];
+
     for (const call of toolCalls) {
       const toolResult = await mcpClient.callTool({
         name: call.function.name,
         arguments: JSON.parse(call.function.arguments),
       });
-  
+
+      toolMessages.push({
+        tool_call_id: call.id,
+        role: "tool",
+        content: JSON.stringify(toolResult.content),
+      });
+
       const formatted = formatToolResult(call.function.name, toolResult.content);
-      results.push(`${formatted}`);
+      formattedResults.push(formatted);
     }
+
+    const followUp = await openai.chat.completions.create({
+      model: "gpt-4.1",
+      messages: [
+        ...messages,               
+        firstMessage,              
+        ...toolMessages,           
+      ],
+    });
+
+    return {
+      response: formattedResults.join("\n") + "\n\n" + followUp.choices[0].message.content,
+    };
   }
 
-  if (response.choices[0].message.content) {
-    results.push(response.choices[0].message.content);
-  }
 
-  return { response: results.join("\n") };
+  return {
+    response: firstMessage.content,
+  };
 });
+
 
 fastify.listen({ port: 3001 }, async (err) => {
   if (err) throw err;
