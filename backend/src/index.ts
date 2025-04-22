@@ -66,7 +66,7 @@ fastify.post("/chat", async (req: any, reply) => {
       });
   
       const formatted = formatToolResult(call.function.name, toolResult.content);
-      results.push(`[Tool ${call.function.name}]\n${formatted}`);
+      results.push(`${formatted}`);
     }
   }
 
