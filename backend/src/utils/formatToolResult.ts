@@ -1,47 +1,39 @@
 export function formatToolResult(toolName: string, content: any): string {
-
-  if (toolName === "send_email") {
-    return `✅ Email enviado com sucesso!`;
-  }
-
-  if (toolName === "modify_email") {
-    return "✅ Email modificado com sucesso!";
-  }
-
+  // Tenta parsear conteúdo se estiver no formato [{ type: "text", text: string }]
   if (Array.isArray(content) && content[0]?.type === "text") {
     try {
       content = JSON.parse(content[0].text);
-    } catch (err) {
+    } catch {
       return "❌ Erro ao interpretar conteúdo da ferramenta.";
     }
   }
 
-  if (toolName === "list_emails" && Array.isArray(content)) {
-    return content
-      .map((email) => {
-        return (
+  const TOOL_HANDLERS: Record<string, (content: any) => string> = {
+    send_email: () => "✅ Email enviado com sucesso!",
+    modify_email: () => "✅ Email modificado com sucesso!",
+    list_emails: (emails: any[]) => {
+      if (!Array.isArray(emails)) return "❌ Lista de emails inválida.";
+      return emails
+        .map((email) =>
           `📧 *${email.subject || "(sem assunto)"}*\n` +
           `🧑 De: ${email.from || "(remetente desconhecido)"}\n` +
           `📅 Data: ${email.date || "(data desconhecida)"}\n` +
           `🆔 ID: ${email.id || "(sem ID)"}\n\n` +
-          `${stripHtml(email.body || "(sem conteúdo)")
-            .slice(0, 500)
-            .trim()}...\n` +
-          `---`
-        );
-      })
-      .join("\n\n");
-  }
+          `${stripHtml(email.body || "(sem conteúdo)").slice(0, 500).trim()}...\n---`
+        )
+        .join("\n\n");
+    },
+    read_email: (email: any) =>
+      `📨 *${email.subject}*\n` +
+      `🧑 De: ${email.from}\n` +
+      `📅 Data: ${email.date}\n\n` +
+      `${stripHtml(email.body)}`
+  };
 
-  if (toolName === "read_email") {
-    return (
-      `📨 *${content.subject}*\n` +
-      `🧑 De: ${content.from}\n` +
-      `📅 Data: ${content.date}\n\n` +
-      `${stripHtml(content.body)}`
-    );
-  }
+  const handler = TOOL_HANDLERS[toolName];
+  if (handler) return handler(content);
 
+  // Fallback
   return Array.isArray(content)
     ? content.map((c) => c.text).join("\n")
     : typeof content === "object"
