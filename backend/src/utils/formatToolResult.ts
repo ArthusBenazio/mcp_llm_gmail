@@ -1,13 +1,4 @@
 export function formatToolResult(toolName: string, content: any): string {
-  // Tenta parsear conteúdo se estiver no formato [{ type: "text", text: string }]
-  if (Array.isArray(content) && content[0]?.type === "text") {
-    try {
-      content = JSON.parse(content[0].text);
-    } catch {
-      return "❌ Erro ao interpretar conteúdo da ferramenta.";
-    }
-  }
-
   const TOOL_HANDLERS: Record<string, (content: any) => string> = {
     send_email: () => "✅ Email enviado com sucesso!",
     modify_email: () => "✅ Email modificado com sucesso!",
@@ -30,16 +21,33 @@ export function formatToolResult(toolName: string, content: any): string {
       `${stripHtml(email.body)}`
   };
 
+  // Pré-processamento para content no formato [{ type: "text", text }]
+  if (Array.isArray(content) && content[0]?.type === "text") {
+    const rawText = content[0].text;
+    const isJsonLike = typeof rawText === "string" && /^[\[{]/.test(rawText.trim());
+
+    if (isJsonLike) {
+      try {
+        content = JSON.parse(rawText);
+      } catch {
+        return "❌ Erro ao interpretar conteúdo da ferramenta.";
+      }
+    } else {
+      content = rawText;
+    }
+  }
+
   const handler = TOOL_HANDLERS[toolName];
   if (handler) return handler(content);
 
-  // Fallback
   return Array.isArray(content)
     ? content.map((c) => c.text).join("\n")
     : typeof content === "object"
     ? JSON.stringify(content, null, 2)
     : String(content);
 }
+
+
 
 export function stripHtml(content: string | undefined | null): string {
   if (!content || typeof content !== "string") return "";
